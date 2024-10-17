@@ -116,8 +116,5 @@ func (s *V5WebsocketPublicService) removeParamKlineFunc(key V5WebsocketPublicKli
 // retrievePositionFunc :
 func (s *V5WebsocketPublicService) retrieveKlineFunc(key V5WebsocketPublicKlineParamKey) (func(V5WebsocketPublicKlineResponse) error, bool) {
 	f, exist := s.paramKlineMap.Get(key)
-	if !exist {
-		return nil, false
-	}
-	return f, true
+	return f, exist
 }

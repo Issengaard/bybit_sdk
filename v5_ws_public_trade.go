@@ -111,8 +111,5 @@ func (s *V5WebsocketPublicService) removeParamTradeFunc(key V5WebsocketPublicTra
 // retrievePositionFunc :
 func (s *V5WebsocketPublicService) retrieveTradeFunc(key V5WebsocketPublicTradeParamKey) (func(V5WebsocketPublicTradeResponse) error, bool) {
 	f, exist := s.paramTradeMap.Get(key)
-	if !exist {
-		return nil, false
-	}
-	return f, true
+	return f, exist
 }

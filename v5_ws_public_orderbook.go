@@ -166,9 +166,5 @@ func (s *V5WebsocketPublicService) removeParamOrderBookFunc(key V5WebsocketPubli
 // retrievePositionFunc :
 func (s *V5WebsocketPublicService) retrieveOrderBookFunc(key V5WebsocketPublicOrderBookParamKey) (func(V5WebsocketPublicOrderBookResponse) error, bool) {
 	f, exist := s.paramOrderBookMap.Get(key)
-	if !exist {
-		return nil, false
-	}
-
-	return f, true
+	return f, exist
 }

@@ -179,8 +179,5 @@ func (s *V5WebsocketPublicService) removeParamTickerFunc(key V5WebsocketPublicTi
 // retrieveTickerFunc :
 func (s *V5WebsocketPublicService) retrieveTickerFunc(key V5WebsocketPublicTickerParamKey) (func(V5WebsocketPublicTickerResponse) error, bool) {
 	f, exist := s.paramTickerMap.Get(key)
-	if !exist {
-		return nil, false
-	}
-	return f, true
+	return f, exist
 }

@@ -108,8 +108,5 @@ func (s *V5WebsocketPublicService) removeParamLiquidationFunc(key V5WebsocketPub
 // retrievePositionFunc :
 func (s *V5WebsocketPublicService) retrieveLiquidationFunc(key V5WebsocketPublicLiquidationParamKey) (func(V5WebsocketPublicLiquidationResponse) error, bool) {
 	f, exist := s.paramLiquidationMap.Get(key)
-	if !exist {
-		return nil, false
-	}
-	return f, true
+	return f, exist
 }
