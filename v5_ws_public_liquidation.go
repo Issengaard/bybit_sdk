@@ -93,23 +93,23 @@ func (r *V5WebsocketPublicLiquidationResponse) Key() V5WebsocketPublicLiquidatio
 
 // addParamLiquidationFunc :
 func (s *V5WebsocketPublicService) addParamLiquidationFunc(key V5WebsocketPublicLiquidationParamKey, f func(V5WebsocketPublicLiquidationResponse) error) error {
-	if _, exist := s.paramLiquidationMap[key]; exist {
+	if _, exist := s.paramLiquidationMap.Get(key); exist {
 		return errors.New("already registered for this key")
 	}
-	s.paramLiquidationMap[key] = f
+	s.paramLiquidationMap.Add(key, f)
 	return nil
 }
 
 // removeParamLiquidationFunc :
 func (s *V5WebsocketPublicService) removeParamLiquidationFunc(key V5WebsocketPublicLiquidationParamKey) {
-	delete(s.paramLiquidationMap, key)
+	s.paramLiquidationMap.Remove(key)
 }
 
 // retrievePositionFunc :
-func (s *V5WebsocketPublicService) retrieveLiquidationFunc(key V5WebsocketPublicLiquidationParamKey) (func(V5WebsocketPublicLiquidationResponse) error, error) {
-	f, exist := s.paramLiquidationMap[key]
+func (s *V5WebsocketPublicService) retrieveLiquidationFunc(key V5WebsocketPublicLiquidationParamKey) (func(V5WebsocketPublicLiquidationResponse) error, bool) {
+	f, exist := s.paramLiquidationMap.Get(key)
 	if !exist {
-		return nil, errors.New("func not found")
+		return nil, false
 	}
-	return f, nil
+	return f, true
 }

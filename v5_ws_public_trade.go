@@ -43,7 +43,7 @@ func (s *V5WebsocketPublicService) SubscribeTrade(
 		if err != nil {
 			return err
 		}
-		if err := s.writeMessage(websocket.TextMessage, []byte(buf)); err != nil {
+		if err := s.writeMessage(websocket.TextMessage, buf); err != nil {
 			return err
 		}
 		s.removeParamTradeFunc(key)
@@ -96,23 +96,23 @@ func (r *V5WebsocketPublicTradeResponse) Key() V5WebsocketPublicTradeParamKey {
 
 // addParamTradeFunc :
 func (s *V5WebsocketPublicService) addParamTradeFunc(key V5WebsocketPublicTradeParamKey, f func(V5WebsocketPublicTradeResponse) error) error {
-	if _, exist := s.paramTradeMap[key]; exist {
+	if _, exist := s.paramTradeMap.Get(key); exist {
 		return errors.New("already registered for this key")
 	}
-	s.paramTradeMap[key] = f
+	s.paramTradeMap.Add(key, f)
 	return nil
 }
 
 // removeParamTradeFunc :
 func (s *V5WebsocketPublicService) removeParamTradeFunc(key V5WebsocketPublicTradeParamKey) {
-	delete(s.paramTradeMap, key)
+	s.paramTradeMap.Remove(key)
 }
 
 // retrievePositionFunc :
-func (s *V5WebsocketPublicService) retrieveTradeFunc(key V5WebsocketPublicTradeParamKey) (func(V5WebsocketPublicTradeResponse) error, error) {
-	f, exist := s.paramTradeMap[key]
+func (s *V5WebsocketPublicService) retrieveTradeFunc(key V5WebsocketPublicTradeParamKey) (func(V5WebsocketPublicTradeResponse) error, bool) {
+	f, exist := s.paramTradeMap.Get(key)
 	if !exist {
-		return nil, errors.New("func not found")
+		return nil, false
 	}
-	return f, nil
+	return f, true
 }

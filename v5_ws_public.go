@@ -52,13 +52,13 @@ type V5WebsocketPublicService struct {
 	connection *websocket.Conn
 	category   CategoryV5
 
-	mu sync.Mutex
+	connectionWritMutex sync.Mutex
 
-	paramOrderBookMap   map[V5WebsocketPublicOrderBookParamKey]func(V5WebsocketPublicOrderBookResponse) error
-	paramKlineMap       map[V5WebsocketPublicKlineParamKey]func(V5WebsocketPublicKlineResponse) error
-	paramTickerMap      map[V5WebsocketPublicTickerParamKey]func(V5WebsocketPublicTickerResponse) error
-	paramTradeMap       map[V5WebsocketPublicTradeParamKey]func(V5WebsocketPublicTradeResponse) error
-	paramLiquidationMap map[V5WebsocketPublicLiquidationParamKey]func(V5WebsocketPublicLiquidationResponse) error
+	paramOrderBookMap   *PublicWsHandlersMap[V5WebsocketPublicOrderBookParamKey, V5WebsocketPublicOrderBookResponse]
+	paramKlineMap       *PublicWsHandlersMap[V5WebsocketPublicKlineParamKey, V5WebsocketPublicKlineResponse]
+	paramTickerMap      *PublicWsHandlersMap[V5WebsocketPublicTickerParamKey, V5WebsocketPublicTickerResponse]
+	paramTradeMap       *PublicWsHandlersMap[V5WebsocketPublicTradeParamKey, V5WebsocketPublicTradeResponse]
+	paramLiquidationMap *PublicWsHandlersMap[V5WebsocketPublicLiquidationParamKey, V5WebsocketPublicLiquidationResponse]
 }
 
 const (
@@ -206,74 +206,20 @@ func (s *V5WebsocketPublicService) Run() error {
 	}
 	switch topic {
 	case V5WebsocketPublicTopicOrderBook:
-		var resp V5WebsocketPublicOrderBookResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
-		f, err := s.retrieveOrderBookFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-		if err := f(resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPublicTopicOrderBook(message)
+
 	case V5WebsocketPublicTopicKline:
-		var resp V5WebsocketPublicKlineResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPublicTopicKline(message)
 
-		f, err := s.retrieveKlineFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-
-		if err := f(resp); err != nil {
-			return err
-		}
 	case V5WebsocketPublicTopicTicker:
-		var resp V5WebsocketPublicTickerResponse
-		resp.Data.category = s.category
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPublicTopicTicker(message)
 
-		f, err := s.retrieveTickerFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-
-		if err := f(resp); err != nil {
-			return err
-		}
 	case V5WebsocketPublicTopicTrade:
-		var resp V5WebsocketPublicTradeResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPublicTopicTrade(message)
 
-		f, err := s.retrieveTradeFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-
-		if err := f(resp); err != nil {
-			return err
-		}
 	case V5WebsocketPublicTopicLiquidation:
-		var resp V5WebsocketPublicLiquidationResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPublicTopicLiquidation(message)
 
-		f, err := s.retrieveLiquidationFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-
-		if err := f(resp); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -299,9 +245,95 @@ func (s *V5WebsocketPublicService) Close() error {
 	return nil
 }
 
+func (s *V5WebsocketPublicService) handleWebsocketPublicTopicOrderBook(message []byte) error {
+	var resp V5WebsocketPublicOrderBookResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	// When a handler function is deleted and a stop request is sent to the server,
+	// data messages may still be received. To prevent connection restarts in this scenario,
+	// errors are not returned in this block of code.
+	f, isExist := s.retrieveOrderBookFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
+func (s *V5WebsocketPublicService) handleWebsocketPublicTopicKline(message []byte) error {
+	var resp V5WebsocketPublicKlineResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	// When a handler function is deleted and a stop request is sent to the server,
+	// data messages may still be received. To prevent connection restarts in this scenario,
+	// errors are not returned in this block of code.
+	f, isExist := s.retrieveKlineFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
+func (s *V5WebsocketPublicService) handleWebsocketPublicTopicTicker(message []byte) error {
+	var resp V5WebsocketPublicTickerResponse
+	resp.Data.category = s.category
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	// When a handler function is deleted and a stop request is sent to the server,
+	// data messages may still be received. To prevent connection restarts in this scenario,
+	// errors are not returned in this block of code.
+	f, isExist := s.retrieveTickerFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
+func (s *V5WebsocketPublicService) handleWebsocketPublicTopicTrade(message []byte) error {
+	var resp V5WebsocketPublicTradeResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	// When a handler function is deleted and a stop request is sent to the server,
+	// data messages may still be received. To prevent connection restarts in this scenario,
+	// errors are not returned in this block of code.
+	f, isExist := s.retrieveTradeFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
+func (s *V5WebsocketPublicService) handleWebsocketPublicTopicLiquidation(message []byte) error {
+	var resp V5WebsocketPublicLiquidationResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	// When a handler function is deleted and a stop request is sent to the server,
+	// data messages may still be received. To prevent connection restarts in this scenario,
+	// errors are not returned in this block of code.
+	f, isExist := s.retrieveLiquidationFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
 func (s *V5WebsocketPublicService) writeMessage(messageType int, body []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.connectionWritMutex.Lock()
+	defer s.connectionWritMutex.Unlock()
 
 	if err := s.connection.WriteMessage(messageType, body); err != nil {
 		return err
