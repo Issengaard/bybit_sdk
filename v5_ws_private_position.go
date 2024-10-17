@@ -99,23 +99,20 @@ func (r *V5WebsocketPrivatePositionResponse) Key() V5WebsocketPrivateParamKey {
 
 // addParamPositionFunc :
 func (s *V5WebsocketPrivateService) addParamPositionFunc(param V5WebsocketPrivateParamKey, f func(V5WebsocketPrivatePositionResponse) error) error {
-	if _, exist := s.paramPositionMap[param]; exist {
+	if _, exist := s.paramPositionMap.Get(param); exist {
 		return errors.New("already registered for this param")
 	}
-	s.paramPositionMap[param] = f
+	s.paramPositionMap.Add(param, f)
 	return nil
 }
 
 // removeParamPositionFunc :
 func (s *V5WebsocketPrivateService) removeParamPositionFunc(key V5WebsocketPrivateParamKey) {
-	delete(s.paramPositionMap, key)
+	s.paramPositionMap.Remove(key)
 }
 
 // retrievePositionFunc :
-func (s *V5WebsocketPrivateService) retrievePositionFunc(key V5WebsocketPrivateParamKey) (func(V5WebsocketPrivatePositionResponse) error, error) {
-	f, exist := s.paramPositionMap[key]
-	if !exist {
-		return nil, errors.New("func not found")
-	}
-	return f, nil
+func (s *V5WebsocketPrivateService) retrievePositionFunc(key V5WebsocketPrivateParamKey) (func(V5WebsocketPrivatePositionResponse) error, bool) {
+	f, exist := s.paramPositionMap.Get(key)
+	return f, exist
 }

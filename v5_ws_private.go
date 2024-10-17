@@ -43,12 +43,12 @@ type V5WebsocketPrivateService struct {
 	client     *WebSocketClient
 	connection *websocket.Conn
 
-	mu sync.Mutex
+	connectionWritingMutex sync.Mutex
 
-	paramOrderMap     map[V5WebsocketPrivateParamKey]func(V5WebsocketPrivateOrderResponse) error
-	paramPositionMap  map[V5WebsocketPrivateParamKey]func(V5WebsocketPrivatePositionResponse) error
-	paramExecutionMap map[V5WebsocketPrivateParamKey]func(V5WebsocketPrivateExecutionResponse) error
-	paramWalletMap    map[V5WebsocketPrivateParamKey]func(V5WebsocketPrivateWalletResponse) error
+	paramOrderMap     *PublicWsHandlersMap[V5WebsocketPrivateParamKey, V5WebsocketPrivateOrderResponse]
+	paramPositionMap  *PublicWsHandlersMap[V5WebsocketPrivateParamKey, V5WebsocketPrivatePositionResponse]
+	paramExecutionMap *PublicWsHandlersMap[V5WebsocketPrivateParamKey, V5WebsocketPrivateExecutionResponse]
+	paramWalletMap    *PublicWsHandlersMap[V5WebsocketPrivateParamKey, V5WebsocketPrivateWalletResponse]
 }
 
 const (
@@ -193,54 +193,19 @@ func (s *V5WebsocketPrivateService) Run() error {
 		if err := s.connection.PongHandler()("pong"); err != nil {
 			return fmt.Errorf("pong: %w", err)
 		}
+
 	case V5WebsocketPrivateTopicOrder:
-		var resp V5WebsocketPrivateOrderResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
-		f, err := s.retrieveOrderFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-		if err := f(resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPrivateTopicOrder(message)
+
 	case V5WebsocketPrivateTopicPosition:
-		var resp V5WebsocketPrivatePositionResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
-		f, err := s.retrievePositionFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-		if err := f(resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPrivateTopicPosition(message)
+
 	case V5WebsocketPrivateTopicExecution:
-		var resp V5WebsocketPrivateExecutionResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
-		f, err := s.retrieveExecutionFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-		if err := f(resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPrivateTopicExecution(message)
+
 	case V5WebsocketPrivateTopicWallet:
-		var resp V5WebsocketPrivateWalletResponse
-		if err := s.parseResponse(message, &resp); err != nil {
-			return err
-		}
-		f, err := s.retrieveWalletFunc(resp.Key())
-		if err != nil {
-			return err
-		}
-		if err := f(resp); err != nil {
-			return err
-		}
+		return s.handleWebsocketPrivateTopicWallet(message)
+
 	}
 
 	return nil
@@ -267,12 +232,68 @@ func (s *V5WebsocketPrivateService) Close() error {
 	return nil
 }
 
+func (s *V5WebsocketPrivateService) handleWebsocketPrivateTopicOrder(message []byte) error {
+	var resp V5WebsocketPrivateOrderResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	f, isExist := s.retrieveOrderFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
+func (s *V5WebsocketPrivateService) handleWebsocketPrivateTopicPosition(message []byte) error {
+	var resp V5WebsocketPrivatePositionResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	f, isExists := s.retrievePositionFunc(resp.Key())
+	if !isExists {
+		return nil
+	}
+
+	return f(resp)
+}
+
+func (s *V5WebsocketPrivateService) handleWebsocketPrivateTopicExecution(message []byte) error {
+	var resp V5WebsocketPrivateExecutionResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	f, isExist := s.retrieveExecutionFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
 func (s *V5WebsocketPrivateService) writeMessage(messageType int, body []byte) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.connectionWritingMutex.Lock()
+	defer s.connectionWritingMutex.Unlock()
 
 	if err := s.connection.WriteMessage(messageType, body); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (s *V5WebsocketPrivateService) handleWebsocketPrivateTopicWallet(message []byte) error {
+	var resp V5WebsocketPrivateWalletResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	f, isExist := s.retrieveWalletFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
 }

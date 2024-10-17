@@ -107,23 +107,20 @@ func (r *V5WebsocketPrivateOrderResponse) Key() V5WebsocketPrivateParamKey {
 
 // addParamOrderFunc :
 func (s *V5WebsocketPrivateService) addParamOrderFunc(param V5WebsocketPrivateParamKey, f func(V5WebsocketPrivateOrderResponse) error) error {
-	if _, exist := s.paramOrderMap[param]; exist {
+	if _, exist := s.paramOrderMap.Get(param); exist {
 		return errors.New("already registered for this param")
 	}
-	s.paramOrderMap[param] = f
+	s.paramOrderMap.Add(param, f)
 	return nil
 }
 
 // removeParamOrderFunc :
 func (s *V5WebsocketPrivateService) removeParamOrderFunc(key V5WebsocketPrivateParamKey) {
-	delete(s.paramOrderMap, key)
+	s.paramOrderMap.Remove(key)
 }
 
 // retrieveOrderFunc :
-func (s *V5WebsocketPrivateService) retrieveOrderFunc(key V5WebsocketPrivateParamKey) (func(V5WebsocketPrivateOrderResponse) error, error) {
-	f, exist := s.paramOrderMap[key]
-	if !exist {
-		return nil, errors.New("func not found")
-	}
-	return f, nil
+func (s *V5WebsocketPrivateService) retrieveOrderFunc(key V5WebsocketPrivateParamKey) (func(V5WebsocketPrivateOrderResponse) error, bool) {
+	f, exist := s.paramOrderMap.Get(key)
+	return f, exist
 }

@@ -100,23 +100,20 @@ func (r *V5WebsocketPrivateWalletResponse) Key() V5WebsocketPrivateParamKey {
 
 // addParamWalletFunc :
 func (s *V5WebsocketPrivateService) addParamWalletFunc(param V5WebsocketPrivateParamKey, f func(V5WebsocketPrivateWalletResponse) error) error {
-	if _, exist := s.paramWalletMap[param]; exist {
+	if _, exist := s.paramWalletMap.Get(param); exist {
 		return errors.New("already registered for this param")
 	}
-	s.paramWalletMap[param] = f
+	s.paramWalletMap.Add(param, f)
 	return nil
 }
 
 // removeParamWalletFunc :
 func (s *V5WebsocketPrivateService) removeParamWalletFunc(key V5WebsocketPrivateParamKey) {
-	delete(s.paramWalletMap, key)
+	s.paramWalletMap.Remove(key)
 }
 
 // retrieveWalletFunc :
-func (s *V5WebsocketPrivateService) retrieveWalletFunc(key V5WebsocketPrivateParamKey) (func(V5WebsocketPrivateWalletResponse) error, error) {
-	f, exist := s.paramWalletMap[key]
-	if !exist {
-		return nil, errors.New("func not found")
-	}
-	return f, nil
+func (s *V5WebsocketPrivateService) retrieveWalletFunc(key V5WebsocketPrivateParamKey) (func(V5WebsocketPrivateWalletResponse) error, bool) {
+	f, exist := s.paramWalletMap.Get(key)
+	return f, exist
 }
