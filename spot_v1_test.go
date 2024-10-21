@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Issengaard/bybit_sdk/testhelper"
 	"github.com/google/go-querystring/query"
-	"github.com/hirokisan/bybit/v2/testhelper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

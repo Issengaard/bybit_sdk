@@ -6,8 +6,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/hirokisan/bybit/v2"
-	"github.com/hirokisan/bybit/v2/integrationtest-ws/testhelper"
+	"github.com/Issengaard/bybit_sdk"
+	"github.com/Issengaard/bybit_sdk/integrationtest-ws/testhelper"
 	"github.com/stretchr/testify/require"
 )
 

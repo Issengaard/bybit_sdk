@@ -5,8 +5,8 @@ package integrationtestv5execution
 import (
 	"testing"
 
-	"github.com/hirokisan/bybit/v2"
-	"github.com/hirokisan/bybit/v2/integrationtest/testhelper"
+	"github.com/Issengaard/bybit_sdk"
+	"github.com/Issengaard/bybit_sdk/integrationtest/testhelper"
 	"github.com/stretchr/testify/require"
 )
 
