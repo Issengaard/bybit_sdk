@@ -1,4 +1,4 @@
-module github.com/Issengaard/bybit
+module github.com/Issengaard/bybit_sdk
 
 go 1.21
 
