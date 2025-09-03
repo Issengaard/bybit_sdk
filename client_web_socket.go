@@ -85,7 +85,9 @@ func (c *WebSocketClient) buildAuthParam() ([]byte, error) {
 		return nil, fmt.Errorf("this is private endpoint, please set api key and secret")
 	}
 
-	expires := time.Now().Unix()*1000 + 10000
+	// TODO: реализовать настройку через конфигурацию
+	expires := time.Now().Unix()*1000 + 30000
+
 	req := fmt.Sprintf("GET/realtime%d", expires)
 	s := hmac.New(sha256.New, []byte(c.secret))
 	if _, err := s.Write([]byte(req)); err != nil {
