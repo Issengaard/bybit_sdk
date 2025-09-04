@@ -86,14 +86,16 @@ func (c *WebSocketClient) buildAuthParam() ([]byte, error) {
 	}
 
 	// TODO: реализовать настройку через конфигурацию
-	expires := time.Now().Unix()*1000 + 30000
+	expires := time.Now().UnixMilli() + 30000 // 30s buffer
 
+	// ВАЖНО: строка должна быть ровно "GET/realtime" + expires
 	req := fmt.Sprintf("GET/realtime%d", expires)
-	s := hmac.New(sha256.New, []byte(c.secret))
-	if _, err := s.Write([]byte(req)); err != nil {
+	mac := hmac.New(sha256.New, []byte(c.secret))
+	if _, err := mac.Write([]byte(req)); err != nil {
 		return nil, err
 	}
-	signature := hex.EncodeToString(s.Sum(nil))
+	signature := hex.EncodeToString(mac.Sum(nil))
+
 	param := struct {
 		Op   string        `json:"op"`
 		Args []interface{} `json:"args"`
