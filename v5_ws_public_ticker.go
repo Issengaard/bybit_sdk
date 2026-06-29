@@ -81,30 +81,34 @@ type V5WebsocketPublicTickerData struct {
 
 // V5WebsocketPublicTickerLinearInverseResult :
 type V5WebsocketPublicTickerLinearInverseResult struct {
-	Symbol                 SymbolV5      `json:"symbol"`
-	TickDirection          TickDirection `json:"tickDirection"`
-	Price24hPercent        string        `json:"price24hPcnt"`
-	LastPrice              string        `json:"lastPrice"`
-	PrevPrice24h           string        `json:"prevPrice24h"`
-	HighPrice24h           string        `json:"highPrice24h"`
-	LowPrice24h            string        `json:"lowPrice24h"`
-	PrevPrice1h            string        `json:"prevPrice1h"`
-	MarkPrice              string        `json:"markPrice"`
-	IndexPrice             string        `json:"indexPrice"`
-	OpenInterest           string        `json:"openInterest"`
-	OpenInterestValue      string        `json:"openInterestValue"`
-	Turnover24h            string        `json:"turnover24h"`
-	Volume24h              string        `json:"volume24h"`
-	NextFundingTime        string        `json:"nextFundingTime"`
-	FundingRate            string        `json:"fundingRate"`
-	Bid1Price              string        `json:"bid1Price"`
-	Bid1Size               string        `json:"bid1Size"`
-	Ask1Price              string        `json:"ask1Price"`
-	Ask1Size               string        `json:"ask1Size"`
-	DeliveryTime           string        `json:"deliveryTime,omitempty"`
-	BasisRate              string        `json:"basisRate,omitempty"`
-	DeliveryFeeRate        string        `json:"deliveryFeeRate,omitempty"`
-	PredictedDeliveryPrice string        `json:"predictedDeliveryPrice,omitempty"`
+	Symbol            SymbolV5      `json:"symbol"`
+	TickDirection     TickDirection `json:"tickDirection"`
+	Price24hPercent   string        `json:"price24hPcnt"`
+	LastPrice         string        `json:"lastPrice"`
+	PrevPrice24h      string        `json:"prevPrice24h"`
+	HighPrice24h      string        `json:"highPrice24h"`
+	LowPrice24h       string        `json:"lowPrice24h"`
+	PrevPrice1h       string        `json:"prevPrice1h"`
+	MarkPrice         string        `json:"markPrice"`
+	IndexPrice        string        `json:"indexPrice"`
+	OpenInterest      string        `json:"openInterest"`
+	OpenInterestValue string        `json:"openInterestValue"`
+	Turnover24h       string        `json:"turnover24h"`
+	Volume24h         string        `json:"volume24h"`
+	// FundingIntervalHour is the funding interval in hours. Only for Perpetual; absent for Futures.
+	FundingIntervalHour string `json:"fundingIntervalHour,omitempty"`
+	// FundingCap is the upper bound of the funding rate. Only for Perpetual; absent for Futures.
+	FundingCap             string `json:"fundingCap,omitempty"`
+	NextFundingTime        string `json:"nextFundingTime"`
+	FundingRate            string `json:"fundingRate"`
+	Bid1Price              string `json:"bid1Price"`
+	Bid1Size               string `json:"bid1Size"`
+	Ask1Price              string `json:"ask1Price"`
+	Ask1Size               string `json:"ask1Size"`
+	DeliveryTime           string `json:"deliveryTime,omitempty"`
+	BasisRate              string `json:"basisRate,omitempty"`
+	DeliveryFeeRate        string `json:"deliveryFeeRate,omitempty"`
+	PredictedDeliveryPrice string `json:"predictedDeliveryPrice,omitempty"`
 }
 
 // V5WebsocketPublicTickerOptionResult :
