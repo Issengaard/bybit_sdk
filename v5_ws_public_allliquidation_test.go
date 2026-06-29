@@ -9,18 +9,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestWebsocketV5Public_Liquidation(t *testing.T) {
+func TestWebsocketV5Public_AllLiquidation(t *testing.T) {
+	data := []map[string]interface{}{
+		{
+			"p": "25844.48",
+			"S": "Buy",
+			"v": "2.8",
+			"s": "BTCUSDT",
+			"T": 1673251091822,
+		},
+	}
 	respBody := map[string]interface{}{
-		"topic": "liquidation.BTCUSDT",
+		"topic": "allLiquidation.BTCUSDT",
 		"type":  "snapshot",
 		"ts":    1673251091822,
-		"data": map[string]interface{}{
-			"price":       "25844.48",
-			"side":        "Buy",
-			"size":        "2.8",
-			"symbol":      "BTCUSDT",
-			"updatedTime": 1673251091822,
-		},
+		"data":  data,
 	}
 	bytesBody, err := json.Marshal(respBody)
 	require.NoError(t, err)
@@ -39,11 +42,11 @@ func TestWebsocketV5Public_Liquidation(t *testing.T) {
 	require.NoError(t, err)
 
 	{
-		_, err := svc.SubscribeLiquidation(
-			V5WebsocketPublicLiquidationParamKey{
+		_, err := svc.SubscribeAllLiquidation(
+			V5WebsocketPublicAllLiquidationParamKey{
 				Symbol: SymbolV5BTCUSDT,
 			},
-			func(response V5WebsocketPublicLiquidationResponse) error {
+			func(response V5WebsocketPublicAllLiquidationResponse) error {
 				assert.Equal(t, respBody["topic"], response.Topic)
 				return nil
 			},

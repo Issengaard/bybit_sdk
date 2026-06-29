@@ -418,6 +418,7 @@ type V5GetInstrumentsInfoLinearInverseItem struct {
 	LotSizeFilter      LinearInverseLotSizeFilterV5  `json:"lotSizeFilter"`
 	UnifiedMarginTrade bool                          `json:"unifiedMarginTrade"`
 	FundingInterval    int                           `json:"fundingInterval"`
+	CopyTrading        CopyTradingSupport            `json:"copyTrading"`
 }
 
 type LinearInversePriceFilterV5 struct {
@@ -480,6 +481,7 @@ type V5GetInstrumentsInfoSpotItem struct {
 	QuoteCoin     Coin                `json:"quoteCoin"`
 	Innovation    Innovation          `json:"innovation"`
 	Status        InstrumentStatus    `json:"status"`
+	MarginTrading string              `json:"marginTrading"`
 	LotSizeFilter SpotLotSizeFilterV5 `json:"lotSizeFilter"`
 	PriceFilter   SpotPriceFilterV5   `json:"priceFilter"`
 }
