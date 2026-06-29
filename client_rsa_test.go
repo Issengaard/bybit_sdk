@@ -97,14 +97,10 @@ func TestLoadRSAPrivateKeyFromFile(t *testing.T) {
 	// Write to file
 	tmp := os.TempDir()
 	err := os.WriteFile(tmp+"/private_key.pem", []byte(TestRSAPrivateKey), 0600)
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 	// Load private key from file
 	privateKeyPEM, err := LoadRSAPrivateKeyFromFile(tmp + "/private_key.pem")
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 
 	// Create client with RSA authentication
 	client := NewClient().
@@ -119,8 +115,9 @@ func TestRSAModeWebSocket(t *testing.T) {
 	privateKeyPEM := TestRSAPrivateKey
 
 	// Create WebSocket client with RSA authentication
-	wsClient := NewWebsocketClient().
+	wsClient, err := NewWebsocketClient().
 		WithAuthRSA(TestAPIKey, privateKeyPEM)
+	require.NoError(t, err)
 	require.True(t, wsClient.useRSA)
 
 	// Use the WebSocket client

@@ -10,19 +10,21 @@ import (
 )
 
 func TestWebsocketV5Public_AllLiquidation(t *testing.T) {
+	const testAllLiquidationTimestampMs int64 = 1673251091822
+
 	data := []map[string]interface{}{
 		{
 			"p": "25844.48",
 			"S": "Buy",
 			"v": "2.8",
 			"s": "BTCUSDT",
-			"T": 1673251091822,
+			"T": testAllLiquidationTimestampMs,
 		},
 	}
 	respBody := map[string]interface{}{
 		"topic": "allLiquidation.BTCUSDT",
 		"type":  "snapshot",
-		"ts":    1673251091822,
+		"ts":    testAllLiquidationTimestampMs,
 		"data":  data,
 	}
 	bytesBody, err := json.Marshal(respBody)

@@ -84,33 +84,30 @@ func (c *WebSocketClient) WithAuth(key string, secret string) *WebSocketClient {
 }
 
 // WithAuthRSA sets up authentication using RSA private key
-func (c *WebSocketClient) WithAuthRSA(key string, privateKeyPEM string) *WebSocketClient {
+func (c *WebSocketClient) WithAuthRSA(key string, privateKeyPEM string) (*WebSocketClient, error) {
 	c.key = key
 	c.useRSA = true
-	
-	// Parse the private key
+
 	block, _ := pem.Decode([]byte(privateKeyPEM))
 	if block == nil {
-		panic("failed to parse PEM block containing the private key")
+		return nil, fmt.Errorf("withAuthRSA: failed to decode PEM block containing the private key")
 	}
-	
+
 	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err != nil {
-		// Try PKCS8 format if PKCS1 fails
-		parsedKey, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			panic(fmt.Sprintf("failed to parse private key: %v", err))
+		parsedKey, err2 := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err2 != nil {
+			return nil, fmt.Errorf("withAuthRSA: failed to parse private key: %w", err2)
 		}
 		var ok bool
 		privateKey, ok = parsedKey.(*rsa.PrivateKey)
 		if !ok {
-			panic("not an RSA private key")
+			return nil, fmt.Errorf("withAuthRSA: not an RSA private key")
 		}
 	}
-	
+
 	c.privateKey = privateKey
-	
-	return c
+	return c, nil
 }
 
 // WithBaseURL :
@@ -129,7 +126,7 @@ func (c *WebSocketClient) WithDialer(dialer *websocket.Dialer) *WebSocketClient 
 
 // hasAuth : check has auth key and secret
 func (c *WebSocketClient) hasAuth() bool {
-	return c.key != "" && c.secret != ""
+	return c.key != "" && (c.secret != "" || c.useRSA)
 }
 
 func (c *WebSocketClient) buildAuthParam() ([]byte, error) {
@@ -137,7 +134,6 @@ func (c *WebSocketClient) buildAuthParam() ([]byte, error) {
 		return nil, fmt.Errorf("this is private endpoint, please set api key and secret")
 	}
 
-	// TODO: реализовать настройку через конфигурацию
 	expires := time.Now().UnixMilli() + 30000 // 30s buffer
 
 	// ВАЖНО: строка должна быть ровно "GET/realtime" + expires

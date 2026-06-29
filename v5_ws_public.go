@@ -129,10 +129,10 @@ func (s *V5WebsocketPublicService) judgeTopic(respBody []byte) (V5WebsocketPubli
 			return V5WebsocketPublicTopicTicker, nil
 		case strings.Contains(topic, V5WebsocketPublicTopicTrade.String()):
 			return V5WebsocketPublicTopicTrade, nil
-		case strings.Contains(topic, V5WebsocketPublicTopicLiquidation.String()):
-			return V5WebsocketPublicTopicLiquidation, nil
 		case strings.Contains(topic, V5WebsocketPublicTopicAllLiquidation.String()):
 			return V5WebsocketPublicTopicAllLiquidation, nil
+		case strings.Contains(topic, V5WebsocketPublicTopicLiquidation.String()):
+			return V5WebsocketPublicTopicLiquidation, nil
 		}
 	}
 	return "", nil
