@@ -324,6 +324,31 @@ const (
 	IsLowestRiskTrue  = IsLowestRisk(1)
 )
 
+// CopyTradingSupport : Indicates whether the trading pair supports copy trading and for which account types
+type CopyTradingSupport string
+
+const (
+	// CopyTradingSupportNone : Regardless of normal account or UTA account, this trading pair does not support copy trading
+	CopyTradingSupportNone = CopyTradingSupport("none")
+	// CopyTradingSupportBoth : For both normal account and UTA account, this trading pair supports copy trading
+	CopyTradingSupportBoth = CopyTradingSupport("both")
+	// CopyTradingSupportUtaOnly : Only for UTA account, this trading pair supports copy trading
+	CopyTradingSupportUtaOnly = CopyTradingSupport("utaOnly")
+	// CopyTradingSupportNormalOnly : Only for normal account, this trading pair supports copy trading
+	CopyTradingSupportNormalOnly = CopyTradingSupport("normalOnly")
+)
+
+// SlippageToleranceType : Slippage tolerance type for market orders
+type SlippageToleranceType string
+
+const (
+	// SlippageToleranceTypeTickSize : The highest price of Buy order = ask1 + slippageTolerance x tickSize; the lowest price of Sell order = bid1 - slippageTolerance x tickSize
+	SlippageToleranceTypeTickSize = SlippageToleranceType("TickSize")
+	// SlippageToleranceTypePercent : The highest price of Buy order = ask1 x (1 + slippageTolerance x 0.01); the lowest price of Sell order = bid1 x (1 - slippageTolerance x 0.01)
+	SlippageToleranceTypePercent = SlippageToleranceType("Percent")
+)
+
+// CollateralSwitchV5 :
 type CollateralSwitchV5 string
 
 const (

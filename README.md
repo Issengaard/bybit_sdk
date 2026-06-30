@@ -184,7 +184,7 @@ The following API endpoints have been implemented
 - [`/v5/user/query-api` Get API Key Information](https://bybit-exchange.github.io/docs/v5/user/apikey-info)
 
 
-### REST API
+### [deprecated] REST API
 
 #### [Derivatives Unified Margin](https://bybit-exchange.github.io/docs/derivativesV3/unified_margin)
 
@@ -354,7 +354,8 @@ The following API endpoints have been implemented
 - [Kline](https://bybit-exchange.github.io/docs/v5/websocket/public/kline)
 - [Ticker](https://bybit-exchange.github.io/docs/v5/websocket/public/ticker)
 - [Trade](https://bybit-exchange.github.io/docs/v5/websocket/public/trade)
-- [Liquidation](https://bybit-exchange.github.io/docs/v5/websocket/public/liquidation)
+- [Liquidation (Deprecated)](https://bybit-exchange.github.io/docs/v5/websocket/public/liquidation)
+- [AllLiquidation](https://bybit-exchange.github.io/docs/v5/websocket/public/all-liquidation)
 
 #### Private Topics V5
 
@@ -368,7 +369,7 @@ The following API endpoints have been implemented
 - Create
 - Cancel
 
-#### [Spot v1](https://bybit-exchange.github.io/docs/spot/v1/#t-websocket)
+#### [deprecated] [Spot v1](https://bybit-exchange.github.io/docs/spot/v1/#t-websocket)
 
 ##### Public Topics
 

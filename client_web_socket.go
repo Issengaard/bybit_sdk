@@ -2,15 +2,23 @@ package bybit
 
 import (
 	"context"
+	"crypto"
 	"crypto/hmac"
+	"crypto/rand"
+	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"log"
 	"os"
 	"os/signal"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -28,6 +36,12 @@ type WebSocketClient struct {
 	baseURL string
 	key     string
 	secret  string
+	
+	// RSA signing support
+	useRSA     bool
+	privateKey *rsa.PrivateKey
+	
+	dialer  *websocket.Dialer
 }
 
 func (c *WebSocketClient) debugf(format string, v ...interface{}) {
@@ -64,8 +78,36 @@ func (c *WebSocketClient) WithLogger(logger *log.Logger) *WebSocketClient {
 func (c *WebSocketClient) WithAuth(key string, secret string) *WebSocketClient {
 	c.key = key
 	c.secret = secret
+	c.useRSA = false
 
 	return c
+}
+
+// WithAuthRSA sets up authentication using RSA private key
+func (c *WebSocketClient) WithAuthRSA(key string, privateKeyPEM string) (*WebSocketClient, error) {
+	c.key = key
+	c.useRSA = true
+
+	block, _ := pem.Decode([]byte(privateKeyPEM))
+	if block == nil {
+		return nil, fmt.Errorf("withAuthRSA: failed to decode PEM block containing the private key")
+	}
+
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		parsedKey, err2 := x509.ParsePKCS8PrivateKey(block.Bytes)
+		if err2 != nil {
+			return nil, fmt.Errorf("withAuthRSA: failed to parse private key: %w", err2)
+		}
+		var ok bool
+		privateKey, ok = parsedKey.(*rsa.PrivateKey)
+		if !ok {
+			return nil, fmt.Errorf("withAuthRSA: not an RSA private key")
+		}
+	}
+
+	c.privateKey = privateKey
+	return c, nil
 }
 
 // WithBaseURL :
@@ -75,9 +117,16 @@ func (c *WebSocketClient) WithBaseURL(url string) *WebSocketClient {
 	return c
 }
 
+// WithDialer :
+func (c *WebSocketClient) WithDialer(dialer *websocket.Dialer) *WebSocketClient {
+	c.dialer = dialer
+
+	return c
+}
+
 // hasAuth : check has auth key and secret
 func (c *WebSocketClient) hasAuth() bool {
-	return c.key != "" && c.secret != ""
+	return c.key != "" && (c.secret != "" || c.useRSA)
 }
 
 func (c *WebSocketClient) buildAuthParam() ([]byte, error) {
@@ -85,16 +134,28 @@ func (c *WebSocketClient) buildAuthParam() ([]byte, error) {
 		return nil, fmt.Errorf("this is private endpoint, please set api key and secret")
 	}
 
-	// TODO: реализовать настройку через конфигурацию
 	expires := time.Now().UnixMilli() + 30000 // 30s buffer
 
 	// ВАЖНО: строка должна быть ровно "GET/realtime" + expires
 	req := fmt.Sprintf("GET/realtime%d", expires)
-	mac := hmac.New(sha256.New, []byte(c.secret))
-	if _, err := mac.Write([]byte(req)); err != nil {
-		return nil, err
+
+	var signature string
+	if c.useRSA {
+		// For RSA signatures
+		hashed := sha256.Sum256([]byte(req))
+		sig, err := rsa.SignPKCS1v15(rand.Reader, c.privateKey, crypto.SHA256, hashed[:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to sign with RSA: %w", err)
+		}
+		signature = base64.StdEncoding.EncodeToString(sig)
+	} else {
+		// For HMAC signatures
+		s := hmac.New(sha256.New, []byte(c.secret))
+		if _, err := s.Write([]byte(req)); err != nil {
+			return nil, err
+		}
+		signature = hex.EncodeToString(s.Sum(nil))
 	}
-	signature := hex.EncodeToString(mac.Sum(nil))
 
 	param := struct {
 		Op   string        `json:"op"`

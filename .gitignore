@@ -1,4 +1,6 @@
 /.github
 /.idea
 sandbox
+.sandbox
 .temp/
+vendor/

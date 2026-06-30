@@ -69,6 +69,7 @@ type V5CreateInternalTransferResponse struct {
 // V5CreateInternalTransferResult :
 type V5CreateInternalTransferResult struct {
 	TransferID string `json:"transferId"`
+	Status     string `json:"status"`
 }
 
 // CreateInternalTransfer :
@@ -562,6 +563,7 @@ type V5GetCoinInfoChain struct {
 	ChainDeposit          string `json:"chainDeposit"`
 	ChainWithdraw         string `json:"chainWithdraw"`
 	WithdrawPercentageFee string `json:"withdrawPercentageFee"`
+	ContractAddress       string `json:"contractAddress"`
 }
 
 // GetCoinInfo :

@@ -30,8 +30,18 @@ type V5WebsocketPublicServiceI interface {
 		func(V5WebsocketPublicKlineResponse) error,
 	) (func() error, error)
 
+	SubscribeKlines(
+		keys []V5WebsocketPublicKlineParamKey,
+		f func(V5WebsocketPublicKlineResponse) error,
+	) (func() error, error)
+
 	SubscribeTicker(
 		V5WebsocketPublicTickerParamKey,
+		func(V5WebsocketPublicTickerResponse) error,
+	) (func() error, error)
+
+	SubscribeTickers(
+		[]V5WebsocketPublicTickerParamKey,
 		func(V5WebsocketPublicTickerResponse) error,
 	) (func() error, error)
 
@@ -44,6 +54,10 @@ type V5WebsocketPublicServiceI interface {
 		V5WebsocketPublicLiquidationParamKey,
 		func(V5WebsocketPublicLiquidationResponse) error,
 	) (func() error, error)
+	SubscribeAllLiquidation(
+		V5WebsocketPublicAllLiquidationParamKey,
+		func(V5WebsocketPublicAllLiquidationResponse) error,
+	) (func() error, error)
 }
 
 // V5WebsocketPublicService :
@@ -54,11 +68,12 @@ type V5WebsocketPublicService struct {
 
 	connectionWritMutex sync.Mutex
 
-	paramOrderBookMap   *PublicWsHandlersMap[V5WebsocketPublicOrderBookParamKey, V5WebsocketPublicOrderBookResponse]
-	paramKlineMap       *PublicWsHandlersMap[V5WebsocketPublicKlineParamKey, V5WebsocketPublicKlineResponse]
-	paramTickerMap      *PublicWsHandlersMap[V5WebsocketPublicTickerParamKey, V5WebsocketPublicTickerResponse]
-	paramTradeMap       *PublicWsHandlersMap[V5WebsocketPublicTradeParamKey, V5WebsocketPublicTradeResponse]
-	paramLiquidationMap *PublicWsHandlersMap[V5WebsocketPublicLiquidationParamKey, V5WebsocketPublicLiquidationResponse]
+	paramOrderBookMap      *PublicWsHandlersMap[V5WebsocketPublicOrderBookParamKey, V5WebsocketPublicOrderBookResponse]
+	paramKlineMap          *PublicWsHandlersMap[V5WebsocketPublicKlineParamKey, V5WebsocketPublicKlineResponse]
+	paramTickerMap         *PublicWsHandlersMap[V5WebsocketPublicTickerParamKey, V5WebsocketPublicTickerResponse]
+	paramTradeMap          *PublicWsHandlersMap[V5WebsocketPublicTradeParamKey, V5WebsocketPublicTradeResponse]
+	paramLiquidationMap    *PublicWsHandlersMap[V5WebsocketPublicLiquidationParamKey, V5WebsocketPublicLiquidationResponse]
+	paramAllLiquidationMap *PublicWsHandlersMap[V5WebsocketPublicAllLiquidationParamKey, V5WebsocketPublicAllLiquidationResponse]
 }
 
 const (
@@ -89,6 +104,9 @@ const (
 
 	// V5WebsocketPublicTopicLiquidation :
 	V5WebsocketPublicTopicLiquidation = V5WebsocketPublicTopic("liquidation")
+
+	// V5WebsocketPublicTopicAllLiquidation :
+	V5WebsocketPublicTopicAllLiquidation = V5WebsocketPublicTopic("allLiquidation")
 )
 
 func (t V5WebsocketPublicTopic) String() string {
@@ -111,6 +129,8 @@ func (s *V5WebsocketPublicService) judgeTopic(respBody []byte) (V5WebsocketPubli
 			return V5WebsocketPublicTopicTicker, nil
 		case strings.Contains(topic, V5WebsocketPublicTopicTrade.String()):
 			return V5WebsocketPublicTopicTrade, nil
+		case strings.Contains(topic, V5WebsocketPublicTopicAllLiquidation.String()):
+			return V5WebsocketPublicTopicAllLiquidation, nil
 		case strings.Contains(topic, V5WebsocketPublicTopicLiquidation.String()):
 			return V5WebsocketPublicTopicLiquidation, nil
 		}
@@ -220,6 +240,8 @@ func (s *V5WebsocketPublicService) Run() error {
 	case V5WebsocketPublicTopicLiquidation:
 		return s.handleWebsocketPublicTopicLiquidation(message)
 
+	case V5WebsocketPublicTopicAllLiquidation:
+		return s.handleWebsocketPublicTopicAllLiquidation(message)
 	}
 	return nil
 }
@@ -228,7 +250,7 @@ func (s *V5WebsocketPublicService) Run() error {
 func (s *V5WebsocketPublicService) Ping() error {
 	// NOTE: It appears that two messages need to be sent.
 	// REF: https://github.com/hirokisan/bybit/pull/127#issuecomment-1537479346
-	if err := s.writeMessage(websocket.PingMessage, nil); err != nil {
+	if err := s.writeControl(websocket.PingMessage, nil); err != nil {
 		return err
 	}
 	if err := s.writeMessage(websocket.TextMessage, []byte(`{"op":"ping"}`)); err != nil {
@@ -239,7 +261,7 @@ func (s *V5WebsocketPublicService) Ping() error {
 
 // Close :
 func (s *V5WebsocketPublicService) Close() error {
-	if err := s.writeMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil && !errors.Is(err, websocket.ErrCloseSent) {
+	if err := s.writeControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil && !errors.Is(err, websocket.ErrCloseSent) {
 		return err
 	}
 	return nil
@@ -331,11 +353,39 @@ func (s *V5WebsocketPublicService) handleWebsocketPublicTopicLiquidation(message
 	return f(resp)
 }
 
+func (s *V5WebsocketPublicService) handleWebsocketPublicTopicAllLiquidation(message []byte) error {
+	var resp V5WebsocketPublicAllLiquidationResponse
+	if err := s.parseResponse(message, &resp); err != nil {
+		return err
+	}
+
+	// When a handler function is deleted and a stop request is sent to the server,
+	// data messages may still be received. To prevent connection restarts in this scenario,
+	// errors are not returned in this block of code.
+	f, isExist := s.retrieveAllLiquidationFunc(resp.Key())
+	if !isExist {
+		return nil
+	}
+
+	return f(resp)
+}
+
 func (s *V5WebsocketPublicService) writeMessage(messageType int, body []byte) error {
 	s.connectionWritMutex.Lock()
 	defer s.connectionWritMutex.Unlock()
 
+	_ = s.connection.SetWriteDeadline(time.Now().Add(60 * time.Second))
 	if err := s.connection.WriteMessage(messageType, body); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *V5WebsocketPublicService) writeControl(messageType int, body []byte) error {
+	s.connectionWritMutex.Lock()
+	defer s.connectionWritMutex.Unlock()
+
+	if err := s.connection.WriteControl(messageType, body, time.Now().Add(60*time.Second)); err != nil {
 		return err
 	}
 	return nil

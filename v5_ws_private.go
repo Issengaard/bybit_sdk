@@ -131,6 +131,7 @@ func (s *V5WebsocketPrivateService) Start(ctx context.Context, errHandler ErrHan
 	go func() {
 		defer close(done)
 		defer s.connection.Close()
+
 		_ = s.connection.SetReadDeadline(time.Now().Add(60 * time.Second))
 		s.connection.SetPongHandler(func(string) error {
 			_ = s.connection.SetReadDeadline(time.Now().Add(60 * time.Second))
@@ -215,7 +216,7 @@ func (s *V5WebsocketPrivateService) Run() error {
 func (s *V5WebsocketPrivateService) Ping() error {
 	// NOTE: It appears that two messages need to be sent.
 	// REF: https://github.com/hirokisan/bybit/pull/127#issuecomment-1537479346
-	if err := s.writeMessage(websocket.PingMessage, nil); err != nil {
+	if err := s.writeControl(websocket.PingMessage, nil); err != nil {
 		return err
 	}
 	if err := s.writeMessage(websocket.TextMessage, []byte(`{"op":"ping"}`)); err != nil {
@@ -226,7 +227,7 @@ func (s *V5WebsocketPrivateService) Ping() error {
 
 // Close :
 func (s *V5WebsocketPrivateService) Close() error {
-	if err := s.writeMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil && !errors.Is(err, websocket.ErrCloseSent) {
+	if err := s.writeControl(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, "")); err != nil && !errors.Is(err, websocket.ErrCloseSent) {
 		return err
 	}
 	return nil
@@ -278,6 +279,7 @@ func (s *V5WebsocketPrivateService) writeMessage(messageType int, body []byte) e
 	s.connectionWritingMutex.Lock()
 	defer s.connectionWritingMutex.Unlock()
 
+	_ = s.connection.SetWriteDeadline(time.Now().Add(60 * time.Second))
 	if err := s.connection.WriteMessage(messageType, body); err != nil {
 		return err
 	}
@@ -296,4 +298,14 @@ func (s *V5WebsocketPrivateService) handleWebsocketPrivateTopicWallet(message []
 	}
 
 	return f(resp)
+}
+
+func (s *V5WebsocketPrivateService) writeControl(messageType int, body []byte) error {
+	s.connectionWritingMutex.Lock()
+	defer s.connectionWritingMutex.Unlock()
+
+	if err := s.connection.WriteControl(messageType, body, time.Now().Add(60*time.Second)); err != nil {
+		return err
+	}
+	return nil
 }
