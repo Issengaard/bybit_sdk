@@ -130,21 +130,40 @@ func (b *V5WebsocketPublicOrderBookAsks) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// DecodeV5WebsocketPublicOrderBook decodes an order book frame. A compact frame is read by hand, anything else
+// by encoding/json; both give the same response and the same error outcome.
+func DecodeV5WebsocketPublicOrderBook(message []byte, resp *V5WebsocketPublicOrderBookResponse) error {
+	if decodeOrderBookFast(message, resp) {
+		return nil
+	}
+
+	return json.Unmarshal(message, resp)
+}
+
 // Key :
 func (r *V5WebsocketPublicOrderBookResponse) Key() V5WebsocketPublicOrderBookParamKey {
 	topic := r.Topic
-	arr := strings.Split(topic, ".")
-	if arr[0] != V5WebsocketPublicTopicOrderBook.String() || len(arr) != 3 {
+
+	first := strings.IndexByte(topic, '.')
+	if first < 0 || topic[:first] != V5WebsocketPublicTopicOrderBook.String() {
 		return V5WebsocketPublicOrderBookParamKey{}
 	}
-	depth, err := strconv.Atoi(arr[1])
+
+	rest := topic[first+1:]
+
+	second := strings.IndexByte(rest, '.')
+	if second < 0 || strings.IndexByte(rest[second+1:], '.') >= 0 {
+		return V5WebsocketPublicOrderBookParamKey{}
+	}
+
+	depth, err := strconv.Atoi(rest[:second])
 	if err != nil {
 		return V5WebsocketPublicOrderBookParamKey{}
 	}
-	symbol := SymbolV5(arr[2])
+
 	return V5WebsocketPublicOrderBookParamKey{
 		Depth:  depth,
-		Symbol: symbol,
+		Symbol: SymbolV5(rest[second+1:]),
 	}
 }
 
