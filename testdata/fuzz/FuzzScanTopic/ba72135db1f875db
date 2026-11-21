@@ -1,0 +1,2 @@
+go test fuzz v1
+[]byte("{\"topic\":\"kline\",\"\":1E700}")

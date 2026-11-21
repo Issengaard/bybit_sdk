@@ -95,8 +95,22 @@ func (t V5WebsocketPublicTopic) String() string {
 	return string(t)
 }
 
+// JudgeV5WebsocketPublicTopic returns the topic of a public stream frame. A compact frame is read by a scanner,
+// anything else is decoded by encoding/json with the same result.
+func JudgeV5WebsocketPublicTopic(message []byte) (V5WebsocketPublicTopic, error) {
+	if topic, ok := scanTopic(message); ok {
+		return topic, nil
+	}
+
+	return judgeTopicJSON(message)
+}
+
 // judgeTopic :
 func (s *V5WebsocketPublicService) judgeTopic(respBody []byte) (V5WebsocketPublicTopic, error) {
+	return JudgeV5WebsocketPublicTopic(respBody)
+}
+
+func judgeTopicJSON(respBody []byte) (V5WebsocketPublicTopic, error) {
 	parsedData := map[string]interface{}{}
 	if err := json.Unmarshal(respBody, &parsedData); err != nil {
 		return "", err
@@ -247,7 +261,7 @@ func (s *V5WebsocketPublicService) Close() error {
 
 func (s *V5WebsocketPublicService) handleWebsocketPublicTopicOrderBook(message []byte) error {
 	var resp V5WebsocketPublicOrderBookResponse
-	if err := s.parseResponse(message, &resp); err != nil {
+	if err := DecodeV5WebsocketPublicOrderBook(message, &resp); err != nil {
 		return err
 	}
 
