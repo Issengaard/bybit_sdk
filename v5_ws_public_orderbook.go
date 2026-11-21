@@ -131,13 +131,20 @@ func (b *V5WebsocketPublicOrderBookAsks) UnmarshalJSON(data []byte) error {
 }
 
 // DecodeV5WebsocketPublicOrderBook decodes an order book frame. A compact frame is read by hand, anything else
-// by encoding/json; both give the same response and the same error outcome.
+// by encoding/json; both give the same response and the same error outcome. A non-zero resp, which encoding/json
+// would only complete, always goes to encoding/json. The strings of a hand-read response share one copy of the
+// frame: keeping any of them keeps the whole frame in memory.
 func DecodeV5WebsocketPublicOrderBook(message []byte, resp *V5WebsocketPublicOrderBookResponse) error {
-	if decodeOrderBookFast(message, resp) {
+	if isZeroOrderBookResponse(resp) && decodeOrderBookFast(message, resp) {
 		return nil
 	}
 
 	return json.Unmarshal(message, resp)
+}
+
+func isZeroOrderBookResponse(r *V5WebsocketPublicOrderBookResponse) bool {
+	return r.Topic == "" && r.Type == "" && r.TimeStamp == 0 && r.Data.Symbol == "" && r.Data.Bids == nil &&
+		r.Data.Asks == nil && r.Data.UpdateID == 0 && r.Data.Seq == 0
 }
 
 // Key :

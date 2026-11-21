@@ -212,11 +212,13 @@ func (d *orderBookDecoder) orderBookLevels() (V5WebsocketPublicOrderBookBids, bo
 	}
 }
 
+const maxLevelsHint = 1000
+
 // levelsHint counts the level openings up to the end of the array; a wrong count only costs a reallocation.
 func (d *orderBookDecoder) levelsHint() int {
 	n := 0
 
-	for i := d.pos; i < len(d.data); i++ {
+	for i := d.pos; i < len(d.data) && n < maxLevelsHint; i++ {
 		switch d.data[i] {
 		case '[':
 			n++

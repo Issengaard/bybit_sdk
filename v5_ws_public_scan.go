@@ -128,13 +128,16 @@ func (s *wsScanner) skipValue() bool {
 	}
 
 	start := s.pos
+
+	var guard numberGuard
+
 	for s.pos < len(s.data) {
 		switch s.data[s.pos] {
 		case ',', '}', ']':
 			return s.pos > start
 		}
 
-		if !s.skipNumberByte(start) {
+		if !guard.accept(s.data[s.pos]) {
 			return false
 		}
 
@@ -146,28 +149,29 @@ func (s *wsScanner) skipValue() bool {
 
 const maxSkippedDigits = 300
 
-// skipNumberByte refuses the numbers that encoding/json may fail to fit into a float64 when it decodes the frame
-// into a map: those with an exponent or with a very long run of digits.
-func (s *wsScanner) skipNumberByte(start int) bool {
-	c := s.data[s.pos]
-	if (c == 'e' || c == 'E') && s.pos > start {
-		if p := s.data[s.pos-1]; (p >= '0' && p <= '9') || p == '.' {
-			return false
-		}
+// numberGuard refuses the numbers that encoding/json may fail to fit into a float64 when it decodes the frame into
+// a map: those with an exponent or with a very long run of digits. It is fed every byte outside strings.
+type numberGuard struct {
+	run  int
+	prev byte
+}
+
+func (g *numberGuard) accept(c byte) bool {
+	isDigit := c >= '0' && c <= '9'
+
+	if (c == 'e' || c == 'E') && ((g.prev >= '0' && g.prev <= '9') || g.prev == '.') {
+		return false
 	}
 
-	if c >= '0' && c <= '9' && s.pos-start >= maxSkippedDigits {
-		run := 0
-		for i := s.pos; i >= start && s.data[i] >= '0' && s.data[i] <= '9'; i-- {
-			run++
-		}
-
-		if run > maxSkippedDigits {
-			return false
-		}
+	if isDigit {
+		g.run++
+	} else {
+		g.run = 0
 	}
 
-	return true
+	g.prev = c
+
+	return g.run <= maxSkippedDigits
 }
 
 func (s *wsScanner) skipString() bool {
@@ -189,7 +193,8 @@ func (s *wsScanner) skipString() bool {
 }
 
 func (s *wsScanner) skipContainer() bool {
-	start := s.pos
+	var guard numberGuard
+
 	depth := 0
 
 	for s.pos < len(s.data) {
@@ -199,17 +204,22 @@ func (s *wsScanner) skipContainer() bool {
 				return false
 			}
 
+			guard = numberGuard{}
+
 			continue
 		case '{', '[':
 			depth++
+			guard = numberGuard{}
 		case '}', ']':
 			depth--
 			if depth == 0 {
 				s.pos++
 				return true
 			}
+
+			guard = numberGuard{}
 		default:
-			if !s.skipNumberByte(start) {
+			if !guard.accept(s.data[s.pos]) {
 				return false
 			}
 		}

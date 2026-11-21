@@ -277,6 +277,33 @@ func TestDecodeOrderBookFast(t *testing.T) {
 	}
 }
 
+func TestDecodeV5WebsocketPublicOrderBook_NonZeroResponse(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		frame string
+	}{
+		{name: "partial_frame", frame: `{"topic":"orderbook.50.X","ts":1}`},
+		{name: "full_frame", frame: sampleSpotDelta},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			want := V5WebsocketPublicOrderBookResponse{Type: "old", Data: V5WebsocketPublicOrderBookData{Seq: 7}}
+			require.NoError(t, json.Unmarshal([]byte(tt.frame), &want))
+
+			got := V5WebsocketPublicOrderBookResponse{Type: "old", Data: V5WebsocketPublicOrderBookData{Seq: 7}}
+			require.NoError(t, DecodeV5WebsocketPublicOrderBook([]byte(tt.frame), &got))
+			require.Equal(t, want, got)
+		})
+	}
+}
+
 func TestDecodeOrderBookFast_Corpus(t *testing.T) {
 	t.Parallel()
 
